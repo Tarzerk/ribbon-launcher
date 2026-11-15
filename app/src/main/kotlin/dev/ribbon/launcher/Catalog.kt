@@ -62,6 +62,10 @@ object Catalog {
 
     /** The category Ribbon opens on, and that Back and Home return to. */
     const val HOME_CATEGORY = "Inputs"
+    /** Last tab: apps you hid. */
+    const val HIDDEN_CATEGORY = "Hidden"
+    /** Tabs you can rearrange and hide things from. */
+    val ARRANGEABLE = setOf("Video", "Sports", "Music", "Apps")
 
     private class Known(val slot: Slot, val glyph: Glyph, val colors: IntArray, val label: String? = null, val glyphColor: Int = Color.WHITE)
 
@@ -123,8 +127,6 @@ object Catalog {
                 )
             }
         }
-        val order = known.keys.toList()
-        for (list in slots.values) list.sortWith(compareBy({ order.indexOf(it.key.removePrefix("app:")).let { i -> if (i < 0) Int.MAX_VALUE else i } }, { it.label.lowercase() }))
 
         // HDMI inputs, consoles first. Kept simple: name plus port, no power status.
         val consoles = mutableListOf<Item>()
@@ -148,12 +150,12 @@ object Catalog {
         val saved = Sites.all(ctx)
         val web = listOf(Item("web", "Web", Glyph.Globe, Palette.cyan, Action.Web(null), sub = "Ad-blocking web viewer · ☰ for options")) +
             saved.filterNot { it.tv }.mapIndexed { i, s ->
-                Item("site:$i:${s.title}", s.title, Glyph.Letter(s.title.take(1).uppercase()),
-                    Palette.cycle[(s.title.hashCode() and 0x7fffffff) % Palette.cycle.size], Action.Web(s.url), sub = "Saved site · ☰ to remove")
+                Item("site:${s.url}", s.title, Glyph.Letter(s.title.take(1).uppercase()),
+                    Palette.cycle[(s.title.hashCode() and 0x7fffffff) % Palette.cycle.size], Action.Web(s.url), sub = "Saved site")
             }
         slots.getValue(Slot.APPS).addAll(0, web)
         val channels = saved.filter { it.tv }.mapIndexed { i, s ->
-            Item("channel:$i:${s.title}", s.title, Glyph.Letter(s.badge ?: s.title.take(1).uppercase()), Palette.red,
+            Item("channel:${s.url}", s.title, Glyph.Letter(s.badge ?: s.title.take(1).uppercase()), Palette.red,
                 Action.Web(s.url, tv = true), sub = s.sub)
         }
         slots.getValue(Slot.VIDEO).addAll(0, channels)
@@ -178,13 +180,25 @@ object Catalog {
             Item("amazon", "Amazon home", Glyph.Home, Palette.dark, Action.AmazonHome, sub = "Open the original home screen", glyphColor = 0xFF2AA7F4.toInt()),
         )
 
+        // Your layout: hidden apps move to the last tab; every other tab is A–Z until you rearrange it.
+        val hiddenKeys = Layout.hidden(ctx)
+        val hiddenItems = mutableListOf<Item>()
+        fun tab(name: String, slot: Slot, glyph: Glyph, colors: IntArray): Category? {
+            val (hide, show) = slots.getValue(slot).partition { it.key in hiddenKeys }
+            hiddenItems += hide
+            return show.takeIf { it.isNotEmpty() }?.let { Category(name, glyph, colors, Theme.MEDIA, Layout.arrange(ctx, name, it)) }
+        }
+        val media = listOfNotNull(
+            tab("Video", Slot.VIDEO, Glyph.Film, Palette.red),
+            tab("Sports", Slot.SPORTS, Glyph.Ball, Palette.blue),
+            tab("Music", Slot.MUSIC, Glyph.Music, Palette.green),
+            tab("Apps", Slot.APPS, Glyph.Grid, Palette.yellow),
+        )
         val cats = listOfNotNull(
             Category("Settings", Glyph.Gear, Palette.dark, Theme.MEDIA, settings),
             inputs.takeIf { it.isNotEmpty() }?.let { Category(HOME_CATEGORY, Glyph.Plug, Palette.cyan, Theme.GAME, it) }, // hidden when nothing is plugged in
-            slots.getValue(Slot.VIDEO).takeIf { it.isNotEmpty() }?.let { Category("Video", Glyph.Film, Palette.red, Theme.MEDIA, it) },
-            slots.getValue(Slot.SPORTS).takeIf { it.isNotEmpty() }?.let { Category("Sports", Glyph.Ball, Palette.blue, Theme.MEDIA, it) },
-            slots.getValue(Slot.MUSIC).takeIf { it.isNotEmpty() }?.let { Category("Music", Glyph.Music, Palette.green, Theme.MEDIA, it) },
-            slots.getValue(Slot.APPS).takeIf { it.isNotEmpty() }?.let { Category("Apps", Glyph.Grid, Palette.yellow, Theme.MEDIA, it) },
+        ) + media + listOfNotNull(
+            hiddenItems.takeIf { it.isNotEmpty() }?.let { Category(HIDDEN_CATEGORY, Glyph.EyeOff, Palette.dark, Theme.MEDIA, it.sortedBy { i -> i.label.lowercase() }) },
         )
         return Home(cats, status = null)
     }

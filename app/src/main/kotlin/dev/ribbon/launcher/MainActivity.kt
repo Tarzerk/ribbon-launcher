@@ -44,6 +44,7 @@ class MainActivity : Activity() {
         ribbon.onActivate = ::open
         ribbon.onSound = sounds::play
         ribbon.onOptions = ::itemOptions
+        ribbon.onReordered = { tab, keys -> Layout.setOrder(this, tab, keys) }
         setContentView(ribbon)
         ribbon.requestFocus()
         // The ribbon paints every pixel itself; drop the window background once it's on screen so
@@ -119,23 +120,50 @@ class MainActivity : Activity() {
         Compat.hideSystemBars(window)
     }
 
-    /** ☰ on a saved site or TV channel tile offers to remove it; other tiles just bump. */
-    private fun itemOptions(item: Item) {
-        val url = (item.action as? Action.Web)?.url
-        if (url == null || !(item.key.startsWith("site:") || item.key.startsWith("channel:"))) { sounds.play(Sfx.EDGE); return }
+    /**
+     * ☰ on a tile: Move / Hide in the app tabs, Unhide in Hidden, plus Remove for saved sites and
+     * TV channels. Settings and Inputs have no options (just a soft bump).
+     */
+    private fun itemOptions(tab: Category, item: Item) {
+        val savedUrl = (item.action as? Action.Web)?.url?.takeIf { item.key.startsWith("site:") || item.key.startsWith("channel:") }
+        val options = mutableListOf<Pair<String, () -> Unit>>()
+        when (tab.name) {
+            in Catalog.ARRANGEABLE -> {
+                options += "Move" to { ribbon.startMove() }
+                options += "Hide" to {
+                    Layout.hide(this, item.key); refresh()
+                    toast("${item.label} hidden · it's in the Hidden tab at the end")
+                }
+                options += "Sort this tab A–Z" to { Layout.resetOrder(this, tab.name); refresh(); toast("${tab.name} sorted A–Z") }
+            }
+            Catalog.HIDDEN_CATEGORY -> options += "Unhide" to { Layout.unhide(this, item.key); refresh(); toast("${item.label} is back") }
+        }
+        if (savedUrl != null) options += "Remove from Ribbon" to { confirmRemove(item, savedUrl) }
+        if (options.isEmpty()) { sounds.play(Sfx.EDGE); return }
         sounds.play(Sfx.SELECT)
+        android.app.AlertDialog.Builder(this, android.R.style.Theme_DeviceDefault_Dialog_Alert)
+            .setTitle(item.label)
+            .setItems(options.map { it.first }.toTypedArray()) { _, which -> sounds.play(Sfx.SELECT); options[which].second() }
+            .setOnCancelListener { sounds.play(Sfx.BACK) }
+            .show()
+    }
+
+    private fun confirmRemove(item: Item, url: String) {
         android.app.AlertDialog.Builder(this, android.R.style.Theme_DeviceDefault_Dialog_Alert)
             .setTitle(item.label)
             .setMessage("Remove this tile from Ribbon?")
             .setPositiveButton("Remove") { _, _ ->
                 Sites.remove(this, url)
+                Layout.unhide(this, item.key)
                 refresh()
                 sounds.play(Sfx.BACK)
-                Toast.makeText(this, "Removed ${item.label}", Toast.LENGTH_SHORT).show()
+                toast("Removed ${item.label}")
             }
             .setNegativeButton("Cancel") { _, _ -> sounds.play(Sfx.BACK) }
             .show()
     }
+
+    private fun toast(msg: String) = Toast.makeText(this, msg, Toast.LENGTH_SHORT).show()
 
     private fun open(item: Item) {
         if (item.action != Action.ToggleSounds && item.action != Action.NextSoundLevel) leftForSomething = true

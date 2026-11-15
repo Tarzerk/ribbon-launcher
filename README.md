@@ -6,7 +6,8 @@ Works on Fire OS 6 (Android 7.1) and newer, including Fire TV smart TVs and stic
 
 ## Features
 
-- **Cross-bar home screen**: categories for Settings, Inputs, Video, Sports, Music and Apps. Installed apps are sorted in automatically.
+- **Cross-bar home screen**: categories for Settings, Inputs, Video, Sports, Music and Apps. Installed apps are sorted in automatically, A–Z.
+- **Arrange it your way**: press ☰ on any app to move it up or down, or hide it. Hidden apps go to a Hidden tab at the end, where you can bring them back. "Sort this tab A–Z" resets a tab. Your layout is saved on the TV.
 - **Inputs**: switch to HDMI ports right from the home screen. Devices that announce themselves over HDMI-CEC show up by name.
 - **Home button override**: Fire TV ignores the "default launcher" setting, so Ribbon reopens itself whenever Amazon's home screen comes up. "Amazon home" is still one click away in Settings.
 - **Menu sounds**: original synthesized sounds (see `tools/make_sounds.py`), four volume levels. You can also drop in your own sound pack (see below).
@@ -93,6 +94,8 @@ python3 tools/make_sounds.py glass
 | Home | ← → | Switch category |
 | Home | ↑ ↓ | Move through items |
 | Home | OK | Open |
+| Home | ☰ | Move, hide or unhide the selected app |
+| Moving a tile | ↑ ↓, then OK | Slide it, then place it |
 
 ## Disclaimer
 

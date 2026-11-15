@@ -29,6 +29,7 @@ sealed class Glyph {
     object Plug : Glyph()
     object Antenna : Glyph()
     object Globe : Glyph()
+    object EyeOff : Glyph()
     data class Letter(val text: String) : Glyph()
 }
 
@@ -138,6 +139,11 @@ object GlyphPainter {
                 moveTo(4f, 11f); lineTo(12f, 4f); lineTo(20f, 11f)
                 moveTo(6.5f, 9.5f); lineTo(6.5f, 20f); lineTo(17.5f, 20f); lineTo(17.5f, 9.5f)
             }, stroke)
+            Glyph.EyeOff -> {
+                c.drawPath(cached(g) { moveTo(2.5f, 12f); cubicTo(5.5f, 6.5f, 18.5f, 6.5f, 21.5f, 12f); cubicTo(18.5f, 17.5f, 5.5f, 17.5f, 2.5f, 12f); close() }, stroke)
+                c.drawCircle(12f, 12f, 2.6f, fill)
+                c.drawLine(4.5f, 19.5f, 19.5f, 4.5f, stroke)
+            }
             Glyph.Grid -> for (x in floatArrayOf(4f, 13f)) for (y in floatArrayOf(4f, 13f)) {
                 r.set(x, y, x + 7f, y + 7f); c.drawRoundRect(r, 1.8f, 1.8f, stroke)
             }

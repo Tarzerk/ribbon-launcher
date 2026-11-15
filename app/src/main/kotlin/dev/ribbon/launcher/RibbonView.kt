@@ -31,8 +31,37 @@ import kotlin.math.sin
 class RibbonView(ctx: Context) : View(ctx) {
 
     var onActivate: ((Item) -> Unit)? = null
-    /** ☰ (menu) on the selected item, e.g. to remove a saved tile. */
-    var onOptions: ((Item) -> Unit)? = null
+    /** ☰ (menu) on the selected item: gets its tab and the item. */
+    var onOptions: ((Category, Item) -> Unit)? = null
+    /** Called when you drop a moved tile: the tab's name and its new order of keys. */
+    var onReordered: ((String, List<String>) -> Unit)? = null
+
+    /** True while a tile is "lifted": ↑ ↓ slide it, OK or Back puts it down. */
+    private var moving = false
+
+    fun startMove() {
+        if (cats.getOrNull(cat)?.items?.getOrNull(item) == null) return
+        moving = true
+        invalidate()
+    }
+
+    private fun shiftLifted(d: Int): Boolean {
+        val c = cats.getOrNull(cat) ?: return false
+        val next = item + d
+        if (next !in c.items.indices) return false
+        val list = c.items.toMutableList()
+        java.util.Collections.swap(list, item, next)
+        cats = cats.toMutableList().also { it[cat] = Category(c.name, c.glyph, c.colors, c.theme, list) }
+        item = next
+        invalidate()
+        return true
+    }
+
+    private fun dropLifted() {
+        moving = false
+        cats.getOrNull(cat)?.let { c -> onReordered?.invoke(c.name, c.items.map { it.key }) }
+        invalidate()
+    }
     var onSound: ((Sfx) -> Unit)? = null
 
     private var cats: List<Category> = emptyList()
@@ -90,7 +119,8 @@ class RibbonView(ctx: Context) : View(ctx) {
             focusHome(animate = false)
         } else {
             cat = cats.indexOfFirst { it.name == oldCat }.takeIf { it >= 0 } ?: homeIndex()
-            item = cats[cat].items.indexOfFirst { it.key == oldItem }.coerceAtLeast(0)
+            val last = cats[cat].items.lastIndex.coerceAtLeast(0)
+            item = cats[cat].items.indexOfFirst { it.key == oldItem }.takeIf { it >= 0 } ?: item.coerceIn(0, last) // gone (hidden/removed): stay put
             itemPos = item.toFloat()
         }
         invalidate()
@@ -115,6 +145,17 @@ class RibbonView(ctx: Context) : View(ctx) {
 
     override fun onKeyDown(keyCode: Int, event: KeyEvent): Boolean {
         val first = event.repeatCount == 0
+        if (moving) {
+            when (keyCode) {
+                KeyEvent.KEYCODE_DPAD_UP -> sound(shiftLifted(-1), Sfx.MOVE, first)
+                KeyEvent.KEYCODE_DPAD_DOWN -> sound(shiftLifted(1), Sfx.MOVE, first)
+                KeyEvent.KEYCODE_DPAD_LEFT, KeyEvent.KEYCODE_DPAD_RIGHT -> if (first) onSound?.invoke(Sfx.EDGE)
+                KeyEvent.KEYCODE_DPAD_CENTER, KeyEvent.KEYCODE_ENTER, KeyEvent.KEYCODE_NUMPAD_ENTER, KeyEvent.KEYCODE_BUTTON_A,
+                KeyEvent.KEYCODE_BACK, KeyEvent.KEYCODE_BUTTON_B, KeyEvent.KEYCODE_MENU -> if (first) { dropLifted(); onSound?.invoke(Sfx.SELECT) }
+                else -> return super.onKeyDown(keyCode, event)
+            }
+            return true
+        }
         when (keyCode) {
             KeyEvent.KEYCODE_DPAD_LEFT, KeyEvent.KEYCODE_BUTTON_L1 -> sound(moveCat(-1), Sfx.CATEGORY, first)
             KeyEvent.KEYCODE_DPAD_RIGHT, KeyEvent.KEYCODE_BUTTON_R1 -> sound(moveCat(1), Sfx.CATEGORY, first)
@@ -122,7 +163,7 @@ class RibbonView(ctx: Context) : View(ctx) {
             KeyEvent.KEYCODE_DPAD_DOWN -> sound(moveItem(1), Sfx.MOVE, first)
             KeyEvent.KEYCODE_DPAD_CENTER, KeyEvent.KEYCODE_ENTER, KeyEvent.KEYCODE_NUMPAD_ENTER,
             KeyEvent.KEYCODE_BUTTON_A -> if (first) activate()
-            KeyEvent.KEYCODE_MENU, KeyEvent.KEYCODE_BUTTON_Y -> if (first) cats.getOrNull(cat)?.items?.getOrNull(item)?.let { onOptions?.invoke(it) }
+            KeyEvent.KEYCODE_MENU, KeyEvent.KEYCODE_BUTTON_Y -> if (first) cats.getOrNull(cat)?.let { c -> c.items.getOrNull(item)?.let { onOptions?.invoke(c, it) } }
             KeyEvent.KEYCODE_BACK, KeyEvent.KEYCODE_BUTTON_B -> if (first) {
                 val homeIdx = homeIndex()
                 if (item > 0) moveItem(-item) else if (cat != homeIdx) focusHome()
@@ -359,15 +400,18 @@ class RibbonView(ctx: Context) : View(ctx) {
             val focusedNow = i == item
             val scale = (1f + 0.2f * near) * (1f - 0.08f * press * if (focusedNow) 1f else 0f)
             val alpha = (0.55f + 0.45f * near) * fadeTop * listFade
-            drawIcon(c, ax, y, size * scale, it.colors, it.glyph, it.glyphColor, alpha, focused = near > 0.5f, glow = glow)
+            val lifted = moving && focusedNow
+            val ix = if (lifted) ax + 14f * dp else ax // a lifted tile sits a little to the right
+            drawIcon(c, ix, y, size * scale, it.colors, it.glyph, it.glyphColor, alpha, focused = near > 0.5f, glow = glow)
 
-            val tx = ax + size * scale / 2f + 20f * dp
+            val tx = ix + size * scale / 2f + 20f * dp
+            val sub = if (lifted) "↑ ↓ to move · OK to place" else it.sub
             val p = if (near > 0.5f) boldPaint else labelPaint
             p.textSize = (18f + 4f * near) * dp; p.alpha = (255 * alpha).toInt()
-            if (it.sub != null && near > 0.3f) {
+            if (sub != null && near > 0.3f) {
                 c.drawText(it.label, tx, y - 2f * dp, p)
                 subPaint.textSize = 14f * dp; subPaint.alpha = (200 * alpha * near).toInt()
-                c.drawText(it.sub, tx, y + 20f * dp, subPaint)
+                c.drawText(sub, tx, y + 20f * dp, subPaint)
             } else {
                 c.drawText(it.label, tx, y + p.textSize * 0.35f, p)
             }
