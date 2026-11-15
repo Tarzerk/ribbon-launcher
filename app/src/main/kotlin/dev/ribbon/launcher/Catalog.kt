@@ -31,6 +31,8 @@ sealed class Action {
     object AmazonHome : Action()
     object ToggleSounds : Action()
     object NextSoundLevel : Action()
+    /** Settings → Hidden apps: lists the apps you hid, to open or unhide. */
+    class HiddenApps(val items: List<Item>) : Action()
     /** Opens Ribbon's web viewer; null url asks for an address. */
     data class Web(val url: String?, val tv: Boolean = false) : Action()
 }
@@ -62,8 +64,6 @@ object Catalog {
 
     /** The category Ribbon opens on, and that Back and Home return to. */
     const val HOME_CATEGORY = "Inputs"
-    /** Last tab: apps you hid. */
-    const val HIDDEN_CATEGORY = "Hidden"
     /** Tabs you can rearrange and hide things from. */
     val ARRANGEABLE = setOf("Video", "Sports", "Music", "Apps")
 
@@ -180,7 +180,7 @@ object Catalog {
             Item("amazon", "Amazon home", Glyph.Home, Palette.dark, Action.AmazonHome, sub = "Open the original home screen", glyphColor = 0xFF2AA7F4.toInt()),
         )
 
-        // Your layout: hidden apps move to the last tab; every other tab is A–Z until you rearrange it.
+        // Your layout: hidden apps leave the tabs (they're listed in Settings → Hidden apps); every other tab is A–Z until you rearrange it.
         val hiddenKeys = Layout.hidden(ctx)
         val hiddenItems = mutableListOf<Item>()
         fun tab(name: String, slot: Slot, glyph: Glyph, colors: IntArray): Category? {
@@ -194,12 +194,14 @@ object Catalog {
             tab("Music", Slot.MUSIC, Glyph.Music, Palette.green),
             tab("Apps", Slot.APPS, Glyph.Grid, Palette.yellow),
         )
+        val hiddenEntry = hiddenItems.takeIf { it.isNotEmpty() }?.let {
+            Item("hidden-apps", "Hidden apps", Glyph.EyeOff, Palette.dark, Action.HiddenApps(it.sortedBy { i -> i.label.lowercase() }),
+                sub = "${it.size} hidden · press to open or unhide")
+        }
         val cats = listOfNotNull(
-            Category("Settings", Glyph.Gear, Palette.dark, Theme.MEDIA, settings),
+            Category("Settings", Glyph.Gear, Palette.dark, Theme.MEDIA, settings + listOfNotNull(hiddenEntry)),
             inputs.takeIf { it.isNotEmpty() }?.let { Category(HOME_CATEGORY, Glyph.Plug, Palette.cyan, Theme.GAME, it) }, // hidden when nothing is plugged in
-        ) + media + listOfNotNull(
-            hiddenItems.takeIf { it.isNotEmpty() }?.let { Category(HIDDEN_CATEGORY, Glyph.EyeOff, Palette.dark, Theme.MEDIA, it.sortedBy { i -> i.label.lowercase() }) },
-        )
+        ) + media
         return Home(cats, status = null)
     }
 

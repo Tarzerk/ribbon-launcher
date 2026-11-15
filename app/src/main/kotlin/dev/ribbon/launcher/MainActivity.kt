@@ -121,7 +121,7 @@ class MainActivity : Activity() {
     }
 
     /**
-     * ☰ on a tile: Move / Hide in the app tabs, Unhide in Hidden, plus Remove for saved sites and
+     * ☰ on a tile: Move / Hide in the app tabs, plus Remove for saved sites and
      * TV channels. Settings and Inputs have no options (just a soft bump).
      */
     private fun itemOptions(tab: Category, item: Item) {
@@ -132,11 +132,10 @@ class MainActivity : Activity() {
                 options += "Move" to { ribbon.startMove() }
                 options += "Hide" to {
                     Layout.hide(this, item.key); refresh()
-                    toast("${item.label} hidden · it's in the Hidden tab at the end")
+                    toast("${item.label} hidden · Settings → Hidden apps to bring it back")
                 }
                 options += "Sort this tab A–Z" to { Layout.resetOrder(this, tab.name); refresh(); toast("${tab.name} sorted A–Z") }
             }
-            Catalog.HIDDEN_CATEGORY -> options += "Unhide" to { Layout.unhide(this, item.key); refresh(); toast("${item.label} is back") }
         }
         if (savedUrl != null) options += "Remove from Ribbon" to { confirmRemove(item, savedUrl) }
         if (options.isEmpty()) { sounds.play(Sfx.EDGE); return }
@@ -144,6 +143,26 @@ class MainActivity : Activity() {
         android.app.AlertDialog.Builder(this, android.R.style.Theme_DeviceDefault_Dialog_Alert)
             .setTitle(item.label)
             .setItems(options.map { it.first }.toTypedArray()) { _, which -> sounds.play(Sfx.SELECT); options[which].second() }
+            .setOnCancelListener { sounds.play(Sfx.BACK) }
+            .show()
+    }
+
+    /** Settings → Hidden apps: pick one, then open it or put it back in its tab. */
+    private fun showHiddenApps(items: List<Item>) {
+        android.app.AlertDialog.Builder(this, android.R.style.Theme_DeviceDefault_Dialog_Alert)
+            .setTitle("Hidden apps")
+            .setItems(items.map { it.label }.toTypedArray()) { _, which ->
+                val app = items[which]
+                sounds.play(Sfx.SELECT)
+                android.app.AlertDialog.Builder(this, android.R.style.Theme_DeviceDefault_Dialog_Alert)
+                    .setTitle(app.label)
+                    .setItems(arrayOf("Open", "Unhide")) { _, choice ->
+                        sounds.play(Sfx.SELECT)
+                        if (choice == 0) open(app) else { Layout.unhide(this, app.key); refresh(); toast("${app.label} is back") }
+                    }
+                    .setOnCancelListener { sounds.play(Sfx.BACK) }
+                    .show()
+            }
             .setOnCancelListener { sounds.play(Sfx.BACK) }
             .show()
     }
@@ -186,6 +205,7 @@ class MainActivity : Activity() {
                         .putExtra(WebActivity.EXTRA_COLORS, item.colors)
                         .putExtra(WebActivity.EXTRA_BADGE, (item.glyph as? Glyph.Letter)?.text)
                 )
+                is Action.HiddenApps -> showHiddenApps(a.items)
                 Action.NextSoundLevel -> {
                     sounds.nextLevel()
                     refresh()
