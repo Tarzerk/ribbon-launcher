@@ -1,0 +1,5 @@
+<resources>
+    <string name="app_name">Ribbon</string>
+    <string name="override_label">Ribbon Home button</string>
+    <string name="override_description">Opens Ribbon when you press Home instead of the Amazon home screen. Ribbon only watches for the Amazon home screen opening and reads nothing else.</string>
+</resources>

@@ -1,0 +1,7 @@
+<resources>
+    <style name="RibbonTheme" parent="@android:style/Theme.DeviceDefault.NoActionBar.Fullscreen">
+        <item name="android:windowBackground">@drawable/window_bg</item>
+        <item name="android:windowAnimationStyle">@null</item>
+        <item name="android:windowShowWallpaper">false</item>
+    </style>
+</resources>
