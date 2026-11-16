@@ -4,20 +4,9 @@ A fast, minimal home screen for Fire TV, in the spirit of the classic cross-bar 
 
 Works on Fire OS 6 (Android 7.1) and newer, including Fire TV smart TVs and sticks.
 
-![Scrolling through Ribbon: Inputs, Video, moving a tile, Sports, Music, Apps and Settings](screenshots/tour.gif)
-
-## Screenshots
-
-| | |
-|---|---|
-| ![Inputs: switch to an HDMI console right from the home screen](screenshots/01-home-inputs.png) | ![Video: your streaming apps, A–Z](screenshots/05-video-scrolled.png) |
-| **Inputs**: HDMI devices, consoles first | **Video**: streaming apps, sorted in automatically |
-| ![Moving a tile with ☰ → Move](screenshots/06-video-moving-tile.png) | ![Apps tab](screenshots/09-apps.png) |
-| **Arrange it**: ☰ → Move, then ↑ ↓ | **Apps**: everything else, plus the web viewer |
-| ![Settings tab](screenshots/10-settings.png) | ![Settings → Hidden apps](screenshots/11-settings-hidden-apps.png) |
-| **Settings**: Wi-Fi, controllers, sounds | **Hidden apps**: out of sight, one click away |
-
-The app names and HDMI devices in these shots are sample data.
+<p align="center">
+  <img src="docs/tour.gif" width="800" alt="Scrolling through Ribbon on a Fire TV: Inputs, Video, moving a tile, Sports, Music, Apps and Settings">
+</p>
 
 ## Features
 
