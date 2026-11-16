@@ -4,6 +4,10 @@ A fast, minimal home screen for Fire TV, in the spirit of the classic cross-bar 
 
 Works on Fire OS 6 (Android 7.1) and newer, including Fire TV smart TVs and sticks.
 
+<p align="center">
+  <img src="docs/tour.gif" width="800" alt="Scrolling through Ribbon on a Fire TV: Inputs, Video, moving a tile, Sports, Music, Apps and Settings">
+</p>
+
 ## Features
 
 - **Cross-bar home screen**: categories for Settings, Inputs, Video, Sports, Music and Apps. Installed apps are sorted in automatically, A–Z.
