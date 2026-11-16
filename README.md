@@ -6,8 +6,6 @@ Works on Fire OS 6 (Android 7.1) and newer, including Fire TV smart TVs and stic
 
 ![Scrolling through Ribbon: Inputs, Video, moving a tile, Sports, Music, Apps and Settings](screenshots/tour.gif)
 
-[Watch the full-quality video (1080p MP4)](screenshots/tour.mp4)
-
 ## Screenshots
 
 | | |
